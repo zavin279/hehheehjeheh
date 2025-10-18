@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 # Read the DATABASE_URL from environment variable or default to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./zena.db")
+
 # Create the SQLAlchemy engine
 # ONLY use connect_args for SQLite. Remove it for PostgreSQL/MySQL.
 if DATABASE_URL.startswith("sqlite"):
