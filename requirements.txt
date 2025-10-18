@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+google-generativeai
+langdetect
+python-multipart
+python-jose[cryptography]
+openai
+pillow
+aiofiles
+psycopg2-binary 
