@@ -16,7 +16,7 @@ from models import Base, User, Message
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 from pydantic import BaseModel
@@ -52,15 +52,16 @@ class UserCreate(BaseModel):
     personality: str
 
 
-# Routes
-@app.get("/")
+# UPDATED: Serve frontend from root
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint - API status check"""
-    return {
-        "message": "Zena AI Backend is running!", 
-        "version": "2.0.0",
-        "status": "active"
-    }
+    """Serve the frontend HTML interface"""
+    try:
+        html_path = Path(__file__).parent / "multilingual_chat_frontend.html"
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Frontend file not found</h1>", status_code=404)
 
 
 @app.get("/health")
@@ -73,10 +74,8 @@ async def health_check():
     }
 
 
-@app.get("/chat")
-async def serve_frontend():
-    """Serve the frontend HTML interface"""
-    return FileResponse("multilingual_chat_frontend.html")
+# REMOVED: /chat route that was conflicting
+# Now frontend is served from root (/)
 
 
 @app.post("/users/")
