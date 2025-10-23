@@ -1,12 +1,8 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-google-generativeai
-langdetect
-python-multipart
-python-jose[cryptography]
-openai
-pillow
-aiofiles
-psycopg2-binary
-python-dotenv
+fastapi==0.110.0  # Or whatever version you prefer
+uvicorn==0.30.1
+sqlalchemy==2.0.29
+python-dotenv==1.0.1
+Pillow==10.3.0
+openai==1.30.1 # Latest version
+google-generativeai==0.6.0
+psycopg2-binary  # Required for PostgreSQL
