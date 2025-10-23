@@ -1,0 +1,807 @@
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+# Your Railway backend URL
+BACKEND_API_URL = "https://zena-production-0ecb.up.railway.app"
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zena - Your Companion</title>
+    <link href="https://fonts.cdnfonts.com/css/daughter-of-fortune" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/modern-prestige" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/caviar-dreams" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Caviar Dreams', sans-serif;
+            background: linear-gradient(135deg, #1b0034, #4e006d, #a8009b);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            padding: 20px;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) translateX(100px); opacity: 0; }
+        }
+        
+        .setup-container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 40px 50px;
+            border-radius: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-width: 550px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .setup-container::-webkit-scrollbar { width: 8px; }
+        .setup-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .setup-container::-webkit-scrollbar-thumb { background: rgba(228, 63, 111, 0.5); border-radius: 10px; }
+
+        .logo {
+            font-family: 'Daughter of Fortune', cursive;
+            font-size: 72px;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(228, 63, 111, 0.8);
+            letter-spacing: 2px;
+        }
+
+        .tagline {
+            font-size: 18px;
+            margin-bottom: 35px;
+            color: #f0f0f0;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #f0f0f0;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 15px;
+            font-family: 'Modern Prestige', serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #e43f6f;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Modern Prestige', serif;
+        }
+
+        .hint-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #5a2ddb, #e43f6f);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            font-family: 'Modern Prestige', serif;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(228, 63, 111, 0.4);
+            margin-top: 10px;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(228, 63, 111, 0.6);
+        }
+
+        .btn-start:active {
+            transform: translateY(0);
+        }
+
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .chat-wrapper {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 600px;
+            height: 90vh;
+            border-radius: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #e43f6f;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .header-title-group span {
+            font-size: 12px;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .logout-btn {
+            padding: 8px 15px;
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(228, 63, 111, 0.8);
+            border-color: #e43f6f;
+        }
+
+        #chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #chat-container::-webkit-scrollbar { width: 8px; }
+        #chat-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); }
+        #chat-container::-webkit-scrollbar-thumb { background: rgba(228, 63, 111, 0.5); border-radius: 10px; }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.5;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #5a2ddb, #7a4edb);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot {
+            align-self: flex-start;
+            background: linear-gradient(135deg, #e43f6f, #f4638f);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-image {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .typing, .loading-message {
+            align-self: flex-start;
+            background: rgba(228, 63, 111, 0.5);
+            margin-right: auto;
+            padding: 12px 20px;
+        }
+
+        .typing::after {
+            content: '...';
+            animation: ellipsis 1.5s infinite;
+        }
+        
+        .loading-message {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            font-style: italic;
+            text-align: center;
+        }
+
+        @keyframes ellipsis {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        footer {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+        }
+
+        .media-upload-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .media-upload-btn:hover {
+            background: rgba(228, 63, 111, 0.3);
+            border-color: #e43f6f;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .media-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .media-preview img {
+            max-width: 60px;
+            max-height: 60px;
+            border-radius: 8px;
+        }
+
+        .media-preview-text {
+            flex: 1;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .remove-media {
+            background: rgba(228, 63, 111, 0.8);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #inputBox {
+            flex: 1;
+            padding: 14px 18px;
+            border-radius: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            font-size: 15px;
+            color: white;
+            font-family: 'Caviar Dreams', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        #inputBox:focus {
+            border-color: #e43f6f;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        #inputBox::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        #sendBtn {
+            background: linear-gradient(135deg, #5a2ddb, #e43f6f);
+            border: none;
+            padding: 14px 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+            font-size: 18px;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(228, 63, 111, 0.4);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sendBtn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 18px rgba(228, 63, 111, 0.6);
+        }
+        
+        #sendBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #888;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            .logo { font-size: 56px; }
+            .setup-container { padding: 30px 25px; }
+            .chat-wrapper { height: 100vh; border-radius: 0; }
+            body { padding: 0; align-items: stretch; justify-content: stretch; }
+        }
+        
+        .credits-footer {
+            position: fixed;
+            bottom: 3px;
+            width: 200%;
+            text-align: center;
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.85);
+            font-family: 'Caviar Dreams', sans-serif;
+            z-index: 10;
+            letter-spacing: 1px;
+        }
+
+        .credits-footer strong {
+            color: #ffffff;
+        }
+
+        @media (max-width: 600px) {
+            .credits-footer {
+                font-size: 12px;
+                bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div id="setupScreen" class="setup-container">
+        <div class="logo">Zena</div>
+        <p class="tagline">Live with your favorite person</p>
+        
+        <div class="input-group">
+            <label for="nameInput">What should I call you? *</label>
+            <input type="text" id="nameInput" placeholder="Your name..." />
+        </div>
+
+        <div class="input-group">
+            <label for="personalityInput">How should I behave with you? *</label>
+            <textarea id="personalityInput" placeholder="Describe how you'd like me to chat with you..."></textarea>
+            <div class="hint-text">Tell me your ideal companion's personality</div>
+        </div>
+
+        <button class="btn-start" id="startBtn">Begin Your Journey</button>
+    </div>
+
+    <div id="chatInterface" class="chat-wrapper hidden">
+        <header id="chatHeader">
+            <div class="header-title-group">
+                Zena
+                <span id="headerUserId">User ID: N/A</span>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </header>
+
+        <div id="chat-container">
+            <div class="message loading-message">Loading chat history...</div>
+        </div>
+
+        <footer>
+            <div id="mediaPreviewContainer"></div>
+            <input type="file" id="fileInput" accept="image/*,video/*" />
+            <label for="fileInput" class="media-upload-btn" title="Upload image or video">📎</label>
+            <input type="text" id="inputBox" placeholder="Send a message..." />
+            <button id="sendBtn" disabled>➤</button>
+        </footer>
+    </div>
+
+    <div class="credits-footer">
+        <p><strong>CREATED BY SAVIN</strong> | <strong>POWERED BY GEMINI AI</strong></p>
+    </div>
+
+    <script>
+        const API_BASE_URL = "{{ backend_url }}";
+        
+        console.log('API Base URL:', API_BASE_URL);
+
+        const setupScreen = document.getElementById('setupScreen');
+        const chatInterface = document.getElementById('chatInterface');
+        const startBtn = document.getElementById('startBtn');
+        const nameInput = document.getElementById('nameInput');
+        const personalityInput = document.getElementById('personalityInput');
+        
+        const chatContainer = document.getElementById('chat-container');
+        const chatHeader = document.getElementById('chatHeader');
+        const headerUserId = document.getElementById('headerUserId');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const inputBox = document.getElementById('inputBox');
+        const sendBtn = document.getElementById('sendBtn');
+        const fileInput = document.getElementById('fileInput');
+        const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+        
+        let userId = localStorage.getItem('userId');
+        let userName = localStorage.getItem('userName');
+        let personality = localStorage.getItem('personality');
+        let isTyping = false;
+        let typingElement = null;
+        let selectedFile = null;
+
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 60; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 10 + 5) + 's';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        function updateUIMode() {
+            if (userId && personality && userName) {
+                setupScreen.classList.add('hidden');
+                chatInterface.classList.remove('hidden');
+                chatHeader.querySelector('.header-title-group').innerHTML = `
+                    Zena <span id="headerUserName">/ ${userName}</span>
+                    <span id="headerUserId">User ID: ${userId}</span>
+                `;
+                loadChatHistory(userId);
+            } else {
+                chatInterface.classList.add('hidden');
+                setupScreen.classList.remove('hidden');
+                nameInput.value = userName || '';
+                personalityInput.value = personality || '';
+            }
+        }
+
+        function appendMessage(text, sender, imageUrl = null) {
+            const msg = document.createElement('div');
+            msg.classList.add('message', sender);
+            msg.textContent = text;
+            
+            if (imageUrl) {
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.classList.add('message-image');
+                img.onclick = () => window.open(imageUrl, '_blank');
+                msg.appendChild(img);
+            }
+            
+            chatContainer.appendChild(msg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            if (isTyping) return;
+            isTyping = true;
+            typingElement = document.createElement('div');
+            typingElement.classList.add('message', 'typing');
+            typingElement.textContent = 'Zena is thinking';
+            chatContainer.appendChild(typingElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            if (typingElement) {
+                typingElement.remove();
+                typingElement = null;
+            }
+            isTyping = false;
+        }
+        
+        function setSendButtonState() {
+            sendBtn.disabled = (inputBox.value.trim() === '' && !selectedFile) || isTyping;
+        }
+
+        function showMediaPreview(file) {
+            mediaPreviewContainer.innerHTML = '';
+            const preview = document.createElement('div');
+            preview.classList.add('media-preview');
+            
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                preview.appendChild(img);
+            }
+            
+            const text = document.createElement('span');
+            text.classList.add('media-preview-text');
+            text.textContent = file.name;
+            preview.appendChild(text);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.classList.add('remove-media');
+            removeBtn.innerHTML = '×';
+            removeBtn.onclick = () => {
+                selectedFile = null;
+                mediaPreviewContainer.innerHTML = '';
+                fileInput.value = '';
+                setSendButtonState();
+            };
+            preview.appendChild(removeBtn);
+            
+            mediaPreviewContainer.appendChild(preview);
+        }
+
+        async function createNewUser(name, personalityDesc) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, personality: personalityDesc })
+                });
+
+                if (!response.ok) throw new Error('Failed to create user on backend.');
+
+                const data = await response.json();
+                
+                localStorage.setItem('userId', data.id);
+                localStorage.setItem('userName', data.name);
+                localStorage.setItem('personality', data.personality);
+                
+                userId = data.id;
+                userName = data.name;
+                personality = data.personality;
+
+                updateUIMode();
+
+            } catch (error) {
+                console.error('User creation error:', error);
+                alert(`Error: Could not start session. ${error.message}`);
+                startBtn.disabled = false;
+            }
+        }
+        
+        async function loadChatHistory(id) {
+            chatContainer.innerHTML = '';
+            appendMessage("Loading...", 'loading-message');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat/history/${id}`);
+
+                if (!response.ok) throw new Error('Failed to fetch chat history.');
+
+                const data = await response.json();
+                
+                chatContainer.innerHTML = '';
+                
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        appendMessage(msg.content, msg.sender, msg.image_url);
+                    });
+                } else {
+                    appendMessage(`Hello! I'm Zena. Send me a message or share a photo!`, 'bot');
+                }
+
+            } catch (error) {
+                console.error('History load error:', error);
+                chatContainer.innerHTML = '';
+                appendMessage("Error: Could not load chat history.", 'bot');
+            }
+        }
+
+        async function sendMessage() {
+            const text = inputBox.value.trim();
+            if ((!text && !selectedFile) || !userId || !personality) return;
+            
+            const formData = new FormData();
+            formData.append('message', text || 'What do you think about this?');
+            formData.append('personality', personality);
+            formData.append('user_id', parseInt(userId));
+            
+            if (selectedFile) {
+                formData.append('file', selectedFile);
+                
+                if (selectedFile.type.startsWith('image/')) {
+                    const imageUrl = URL.createObjectURL(selectedFile);
+                    appendMessage(text || 'What do you think?', 'user', imageUrl);
+                } else {
+                    appendMessage(text || `[Video: ${selectedFile.name}]`, 'user');
+                }
+            } else {
+                appendMessage(text, 'user');
+            }
+            
+            inputBox.value = '';
+            selectedFile = null;
+            mediaPreviewContainer.innerHTML = '';
+            fileInput.value = '';
+            setSendButtonState();
+
+            showTyping();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat/`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('AI chat failed.');
+                
+                const data = await response.json();
+
+                hideTyping();
+                appendMessage(data.reply, 'bot');
+
+            } catch (err) {
+                console.error('Chat send error:', err);
+                hideTyping();
+                appendMessage("I'm having trouble connecting right now. Please try again.", 'bot');
+            }
+            setSendButtonState();
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showMediaPreview(file);
+                setSendButtonState();
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            const personalityDesc = personalityInput.value.trim();
+
+            if (!name || !personalityDesc) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            startBtn.disabled = true;
+            createNewUser(name, personalityDesc);
+        });
+        
+        logoutBtn.addEventListener('click', () => {
+            if(confirm("Are you sure you want to end your session with Zena?")) {
+                localStorage.clear();
+                userId = null;
+                userName = null;
+                personality = null;
+                chatContainer.innerHTML = '';
+                updateUIMode();
+            }
+        });
+        
+        sendBtn.addEventListener('click', sendMessage);
+        inputBox.addEventListener('input', setSendButtonState);
+        inputBox.addEventListener('keypress', e => {
+            if (e.key === 'Enter' && !sendBtn.disabled) {
+                sendMessage();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            updateUIMode();
+            
+            if (!chatInterface.classList.contains('hidden')) {
+                setSendButtonState();
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE, backend_url=BACKEND_API_URL)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
